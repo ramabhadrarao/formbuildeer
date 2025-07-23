@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ form_template.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-container {
+        max-width: 800px;
+        margin: 40px auto;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .form-header {
+        background: linear-gradient(135deg, {{ form_template.color }}, {{ form_template.color|darker:20 }});
+        color: white;
+        padding: 30px;
+        text-align: center;
+    }
+    
+    .form-header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 300;
+    }
+    
+    .form-header p {
+        margin: 10px 0 0;
+        opacity: 0.9;
+    }
+    
+    .form-body {
+        padding: 40px;
+    }
+    
+    .field-wrapper {
+        margin-bottom: 25px;
+        transition: all 0.3s ease;
+    }
+    
+    .field-wrapper.hidden {
+        display: none;
+    }
+    
+    .field-wrapper.fade-in {
+        animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .field-label {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 8px;
+        display: block;
+    }
+    
+    .field-label .required {
+        color: #e74c3c;
+        margin-left: 3px;
+    }
+    
+    .field-help {
+        font-size: 13px;
+        color: #7f8c8d;
+        margin-top: 5px;
+    }
+    
+    .field-error {
+        color: #e74c3c;
+        font-size: 13px;
+        margin-top: 5px;
+    }
+    
+    .field-invalid {
+        border-color: #e74c3c !important;
+    }
+    
+    .file-drop-zone {
+        border: 2px dashed #bdc3c7;
+        border-radius: 8px;
+        padding: 40px;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .file-drop-zone.drag-over {
+        border-color: #3498db;
+        background: #ecf0f1;
+    }
+    
+    .file-preview img {
+        max-width: 200px;
+        max-height: 200px;
+        margin-top: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .nested-form {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 10px;
+        border-left: 4px solid {{ form_template.color }};
+    }
+    
+    .submit-wrapper {
+        margin-top: 40px;
+        text-align: center;
+    }
+    
+    .btn-submit {
+        background: {{ form_template.color }};
+        color: white;
+        border: none;
+        padding: 12px 40px;
+        font-size: 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 25px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        transform: translateX(400px);
+        transition: transform 0.3s ease;
+        z-index: 1000;
+    }
+    
+    .notification.show {
+        transform: translateX(0);
+    }
+    
+    .notification-success {
+        background: #2ecc71;
+    }
+    
+    .notification-error {
+        background: #e74c3c;
+    }
+    
+    .notification-info {
+        background: #3498db;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <div class="form-header">
+        <h1><i class="fas fa-{{ form_template.icon }}"></i> {{ form_template.name }}</h1>
+        {% if form_template.description %}
+        <p>{{ form_template.description }}</p>
+        {% endif %}
+    </div>
+    
+    <div class="form-body">
+        <form id="dynamic-form" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            {% for field in fields %}
+            <div class="field-wrapper" 
+                 id="field-{{ field.name }}"
+                 {% if field.show_if %}data-show-if='{{ field.show_if|json }}'{% endif %}>
+                
+                <label class="field-label" for="id_{{ field.name }}">
+                    {{ field.label }}
+                    {% if field.required %}<span class="required">*</span>{% endif %}
+                </label>
+                
+                {% if field.field_type == 'text' %}
+                    <input type="text" 
+                           class="form-control dynamic-field" 
+                           id="id_{{ field.name }}"
+                           name="{{ field.name }}"
+                           placeholder="{{ field.placeholder }}"
+                           {% if field.required %}required{% endif %}
+                           {% if field.max_length %}maxlength="{{ field.max_length }}"{% endif %}
+                           {% if field.validation_rules %}data-validation='{{ field.validation_rules|json }}'{% endif %}>
+                
+                {% elif field.field_type == 'textarea' %}
+                    <textarea class="form-control dynamic-field"
+                             id="id_{{ field.name }}"
+                             name="{{ field.name }}"
+                             rows="4"
+                             placeholder="{{ field.placeholder }}"
+                             {% if field.required %}required{% endif %}>{{ field.default_value }}</textarea>
+                
+                {% elif field.field_type == 'number' %}
+                    <input type="number"
+                           class="form-control dynamic-field"
+                           id="id_{{ field.name }}"
+                           name="{{ field.name }}"
+                           {% if field.min_value %}min="{{ field.min_value }}"{% endif %}
+                           {% if field.max_value %}max="{{ field.max_value }}"{% endif %}
+                           {% if field.required %}required{% endif %}>
+                
+                {% elif field.field_type == 'date' %}
+                    <input type="date"
+                           class="form-control dynamic-field"
+                           id="id_{{ field.name }}"
+                           name="{{ field.name }}"
+                           {% if field.required %}required{% endif %}>
+                
+                {% elif field.field_type == 'select' %}
+                    <select class="form-control dynamic-field"
+                            id="id_{{ field.name }}"
+                            name="{{ field.name }}"
+                            {% if field.required %}required{% endif %}>
+                        <option value="">-- Select --</option>
+                        {% for choice in field.get_choices %}
+                        <option value="{{ choice.value }}">{{ choice.label }}</option>
+                        {% endfor %}
+                    </select>
+                
+                {% elif field.field_type == 'file' %}
+                    <div class="file-drop-zone">
+                        <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
+                        <p>Drag and drop file here or click to browse</p>
+                        <input type="file"
+                               class="form-control dynamic-field file-upload-field"
+                               id="id_{{ field.name }}"
+                               name="{{ field.name }}"
+                               {% if field.accept %}accept="{{ field.accept }}"{% endif %}
+                               {% if field.max_size %}data-max-size="{{ field.max_size }}"{% endif %}
+                               {% if field.required %}required{% endif %}>
+                        <div class="file-preview"></div>
+                    </div>
+                
+                {% elif field.field_type == 'lookup' %}
+                    <input type="text"
+                           class="form-control dynamic-field lookup-field"
+                           id="id_{{ field.name }}"
+                           name="{{ field.name }}"
+                           placeholder="{{ field.placeholder }}"
+                           data-lookup-url="/api/lookup/{{ field.lookup_model }}/"
+                           data-min-length="2"
+                           {% if field.required %}required{% endif %}>
+                
+                {% elif field.field_type == 'nested' %}
+                    <div class="nested-form" data-form-id="{{ field.nested_form.id }}">
+                        <h4>{{ field.nested_form.name }}</h4>
+                        <div class="nested-form-container">
+                            <!-- Nested form fields will be loaded here -->
+                        </div>
+                        {% if field.allow_multiple %}
+                        <button type="button" class="btn btn-sm btn-secondary add-nested-row">
+                            <i class="fas fa-plus"></i> Add Row
+                        </button>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                
+                {% if field.help_text %}
+                <div class="field-help">{{ field.help_text }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            
+            <div class="submit-wrapper">
+                <button type="submit" class="btn-submit">
+                    <i class="fas fa-paper-plane"></i> Submit Form
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/dynamic_forms.js' %}"></script>
+{% endblock %}
