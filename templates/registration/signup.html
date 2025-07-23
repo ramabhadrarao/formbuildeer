@@ -1,0 +1,274 @@
+<!-- 
+FILE: templates/registration/signup.html
+PURPOSE: User registration page with form validation
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Dynamic Forms</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 0;
+        }
+
+        .signup-container {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+            max-width: 500px;
+            width: 100%;
+            margin: 2rem;
+        }
+
+        .signup-header {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            padding: 2rem;
+            color: white;
+            text-align: center;
+        }
+
+        .signup-header h2 {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .signup-header p {
+            opacity: 0.9;
+            margin: 0;
+        }
+
+        .signup-body {
+            padding: 2rem;
+        }
+
+        .form-control {
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .form-control:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border: none;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .password-strength {
+            height: 4px;
+            border-radius: 2px;
+            margin-top: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .password-strength.weak { background: #ef4444; }
+        .password-strength.medium { background: #f59e0b; }
+        .password-strength.strong { background: #10b981; }
+
+        .form-text {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .alert {
+            border: none;
+            border-radius: 0.5rem;
+        }
+
+        .login-link {
+            color: #6366f1;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .login-link:hover {
+            color: #4f46e5;
+        }
+    </style>
+</head>
+<body>
+    <div class="signup-container">
+        <div class="signup-header">
+            <h2><i class="fas fa-user-plus me-2"></i>Create Account</h2>
+            <p>Join Dynamic Forms and start building amazing forms</p>
+        </div>
+        
+        <div class="signup-body">
+            {% if form.errors %}
+                <div class="alert alert-danger mb-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Please correct the following errors:</strong>
+                    <ul class="mb-0 mt-2">
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            
+            <form method="post" id="signupForm">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                            <i class="fas fa-user me-1"></i>First Name
+                        </label>
+                        {{ form.first_name }}
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                            <i class="fas fa-user me-1"></i>Last Name
+                        </label>
+                        {{ form.last_name }}
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.username.id_for_label }}" class="form-label">
+                        <i class="fas fa-at me-1"></i>Username
+                    </label>
+                    {{ form.username }}
+                    <div class="form-text">Choose a unique username (3-150 characters)</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.email.id_for_label }}" class="form-label">
+                        <i class="fas fa-envelope me-1"></i>Email Address
+                    </label>
+                    {{ form.email }}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.department.id_for_label }}" class="form-label">
+                        <i class="fas fa-building me-1"></i>Department
+                    </label>
+                    {{ form.department }}
+                    <div class="form-text">Select your department (optional)</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.password1.id_for_label }}" class="form-label">
+                        <i class="fas fa-lock me-1"></i>Password
+                    </label>
+                    {{ form.password1 }}
+                    <div class="password-strength" id="passwordStrength"></div>
+                    <div class="form-text">
+                        Password must be at least 8 characters long and contain letters and numbers
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.password2.id_for_label }}" class="form-label">
+                        <i class="fas fa-lock me-1"></i>Confirm Password
+                    </label>
+                    {{ form.password2 }}
+                </div>
+                
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="terms" required>
+                    <label class="form-check-label" for="terms">
+                        I agree to the <a href="#" class="login-link">Terms of Service</a> and 
+                        <a href="#" class="login-link">Privacy Policy</a>
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn btn-primary w-100 mb-3">
+                    <i class="fas fa-user-plus me-2"></i>Create Account
+                </button>
+                
+                <div class="text-center">
+                    <span class="text-muted">Already have an account? </span>
+                    <a href="{% url 'login' %}" class="login-link">Sign in</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Password strength checker
+        document.getElementById('{{ form.password1.id_for_label }}').addEventListener('input', function() {
+            const password = this.value;
+            const strengthBar = document.getElementById('passwordStrength');
+            
+            let strength = 0;
+            if (password.length >= 8) strength++;
+            if (/[a-z]/.test(password)) strength++;
+            if (/[A-Z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[^A-Za-z0-9]/.test(password)) strength++;
+            
+            strengthBar.className = 'password-strength';
+            if (strength < 3) {
+                strengthBar.classList.add('weak');
+            } else if (strength < 5) {
+                strengthBar.classList.add('medium');
+            } else {
+                strengthBar.classList.add('strong');
+            }
+        });
+        
+        // Form validation
+        document.getElementById('signupForm').addEventListener('submit', function(e) {
+            const password1 = document.getElementById('{{ form.password1.id_for_label }}').value;
+            const password2 = document.getElementById('{{ form.password2.id_for_label }}').value;
+            const terms = document.getElementById('terms').checked;
+            
+            if (password1 !== password2) {
+                e.preventDefault();
+                alert('Passwords do not match!');
+                return;
+            }
+            
+            if (!terms) {
+                e.preventDefault();
+                alert('Please accept the terms and conditions!');
+                return;
+            }
+        });
+    </script>
+</body>
+</html>

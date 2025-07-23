@@ -2,8 +2,9 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.urls import reverse
 from .models import FormTemplate, FormField, FormSubmission, FormFile
 from .utils import FormRenderer, FormValidator
@@ -12,22 +13,70 @@ from apps.users.models import User, Department, Project
 import json
 
 @login_required
-def form_list(request):
-    """List all available forms for the user"""
-    forms = FormTemplate.objects.filter(is_active=True)
+def dashboard(request):
+    """Main dashboard view"""
+    user = request.user
     
-    # Filter based on user permissions
-    if not request.user.is_superuser:
-        forms = forms.filter(
-            Q(created_by=request.user) |
-            Q(permissions__user=request.user) |
-            Q(permissions__group__in=request.user.groups.all())
-        ).distinct()
+    # Get user statistics
+    total_forms = FormTemplate.objects.filter(is_active=True).count()
+    my_submissions = FormSubmission.objects.filter(submitted_by=user).count()
+    pending_approvals = FormSubmission.objects.filter(
+        assigned_to=user, 
+        status='pending'
+    ).count()
+    
+    # Recent submissions
+    recent_submissions = FormSubmission.objects.filter(
+        Q(submitted_by=user) | Q(assigned_to=user)
+    ).select_related('form', 'submitted_by').order_by('-submitted_at')[:5]
+    
+    # Popular forms
+    popular_forms = FormTemplate.objects.filter(is_active=True).annotate(
+        submission_count=Count('submissions')
+    ).order_by('-submission_count')[:5]
     
     context = {
-        'forms': forms,
-        'title': 'Available Forms'
+        'total_forms': total_forms,
+        'my_submissions': my_submissions,
+        'pending_approvals': pending_approvals,
+        'recent_submissions': recent_submissions,
+        'popular_forms': popular_forms,
     }
+    
+    return render(request, 'forms/dashboard.html', context)
+@login_required
+def form_list(request):
+    """List all available forms"""
+    forms = FormTemplate.objects.filter(is_active=True)
+    
+    # Search
+    search = request.GET.get('search', '')
+    if search:
+        forms = forms.filter(
+            Q(name__icontains=search) | 
+            Q(description__icontains=search)
+        )
+    
+    # Category filter
+    category = request.GET.get('category', '')
+    if category and category != 'all':
+        forms = forms.filter(category=category)
+    
+    # Get all categories for filter
+    categories = FormTemplate.objects.filter(is_active=True).values_list('category', flat=True).distinct()
+    
+    # Pagination
+    paginator = Paginator(forms, 12)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'categories': categories,
+        'search': search,
+        'category': category,
+    }
+    
     return render(request, 'forms/form_list.html', context)
 
 @login_required

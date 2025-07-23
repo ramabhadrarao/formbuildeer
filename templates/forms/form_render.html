@@ -1,187 +1,428 @@
+<!-- 
+FILE: templates/forms/form_render.html
+PURPOSE: Render dynamic forms with advanced field types and validation
+-->
 {% extends "base.html" %}
 {% load static %}
-{% load crispy_forms_tags %}
+{% load widget_tweaks %}
 
-{% block title %}{{ form_template.name }}{% endblock %}
+{% block title %}{{ form_template.name }} - Dynamic Forms{% endblock %}
+{% block page_title %}{{ form_template.name }}{% endblock %}
 
 {% block extra_css %}
 <style>
     .form-container {
-        max-width: 800px;
-        margin: 40px auto;
+        max-width: 900px;
+        margin: 0 auto;
         background: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        border-radius: 1rem;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         overflow: hidden;
     }
     
     .form-header {
-        background: linear-gradient(135deg, {{ form_template.color }}, {{ form_template.color|darker:20 }});
+        background: linear-gradient(135deg, {{ form_template.color }}, {{ form_template.color|add:'cc' }});
         color: white;
-        padding: 30px;
+        padding: 3rem 2rem;
         text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .form-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="formgrid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></pattern></defs><rect width="100" height="100" fill="url(%23formgrid)"/></svg>');
+        animation: formFloat 30s ease-in-out infinite;
+    }
+    
+    @keyframes formFloat {
+        0%, 100% { transform: translateX(0) translateY(0) rotate(0deg); }
+        25% { transform: translateX(20px) translateY(-20px) rotate(1deg); }
+        50% { transform: translateX(-10px) translateY(10px) rotate(-1deg); }
+        75% { transform: translateX(15px) translateY(-15px) rotate(0.5deg); }
+    }
+    
+    .form-header-content {
+        position: relative;
+        z-index: 2;
     }
     
     .form-header h1 {
         margin: 0;
-        font-size: 28px;
-        font-weight: 300;
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
     }
     
     .form-header p {
-        margin: 10px 0 0;
+        margin: 0;
         opacity: 0.9;
+        font-size: 1.125rem;
     }
     
     .form-body {
-        padding: 40px;
+        padding: 3rem 2rem;
     }
     
     .field-wrapper {
-        margin-bottom: 25px;
+        margin-bottom: 2rem;
         transition: all 0.3s ease;
     }
     
     .field-wrapper.hidden {
         display: none;
+        opacity: 0;
     }
     
     .field-wrapper.fade-in {
-        animation: fadeIn 0.3s ease;
+        animation: fieldFadeIn 0.5s ease;
     }
     
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
+    @keyframes fieldFadeIn {
+        from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
     }
     
     .field-label {
         font-weight: 600;
-        color: #2c3e50;
-        margin-bottom: 8px;
+        color: #374151;
+        margin-bottom: 0.5rem;
         display: block;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
     
     .field-label .required {
-        color: #e74c3c;
-        margin-left: 3px;
+        color: #ef4444;
+        margin-left: 0.25rem;
+    }
+    
+    .form-control, .form-select {
+        border: 2px solid #e5e7eb;
+        border-radius: 0.75rem;
+        padding: 0.875rem 1rem;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+        background: #fafafa;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: {{ form_template.color }};
+        box-shadow: 0 0 0 3px {{ form_template.color }}20;
+        background: white;
     }
     
     .field-help {
-        font-size: 13px;
-        color: #7f8c8d;
-        margin-top: 5px;
+        font-size: 0.8rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+        font-style: italic;
     }
     
     .field-error {
-        color: #e74c3c;
-        font-size: 13px;
-        margin-top: 5px;
+        color: #ef4444;
+        font-size: 0.8rem;
+        margin-top: 0.25rem;
+        display: block;
     }
     
     .field-invalid {
-        border-color: #e74c3c !important;
+        border-color: #ef4444 !important;
+        background: #fef2f2 !important;
     }
     
+    /* File Upload Styling */
     .file-drop-zone {
-        border: 2px dashed #bdc3c7;
-        border-radius: 8px;
-        padding: 40px;
+        border: 2px dashed #d1d5db;
+        border-radius: 0.75rem;
+        padding: 2rem;
         text-align: center;
         transition: all 0.3s ease;
         cursor: pointer;
+        background: #fafafa;
+    }
+    
+    .file-drop-zone:hover {
+        border-color: {{ form_template.color }};
+        background: {{ form_template.color }}10;
     }
     
     .file-drop-zone.drag-over {
-        border-color: #3498db;
-        background: #ecf0f1;
+        border-color: {{ form_template.color }};
+        background: {{ form_template.color }}20;
+        transform: scale(1.02);
+    }
+    
+    .file-upload-icon {
+        font-size: 3rem;
+        color: #9ca3af;
+        margin-bottom: 1rem;
+    }
+    
+    .file-preview {
+        margin-top: 1rem;
     }
     
     .file-preview img {
         max-width: 200px;
         max-height: 200px;
-        margin-top: 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
     
+    .file-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 1rem;
+        background: #f3f4f6;
+        border-radius: 0.5rem;
+    }
+    
+    /* Nested Form Styling */
     .nested-form {
-        background: #f8f9fa;
-        border-radius: 8px;
-        padding: 20px;
-        margin-top: 10px;
+        background: #f8fafc;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        margin-top: 1rem;
         border-left: 4px solid {{ form_template.color }};
     }
     
+    .nested-form-header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .add-nested-row {
+        margin-top: 1rem;
+    }
+    
+    /* Radio and Checkbox Styling */
+    .form-check {
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-check-input:checked {
+        background-color: {{ form_template.color }};
+        border-color: {{ form_template.color }};
+    }
+    
+    .form-check-input:focus {
+        box-shadow: 0 0 0 3px {{ form_template.color }}20;
+    }
+    
+    /* Lookup Field Styling */
+    .autocomplete-wrapper {
+        position: relative;
+    }
+    
+    .autocomplete-list {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        z-index: 1000;
+        max-height: 200px;
+        overflow-y: auto;
+        display: none;
+    }
+    
+    .autocomplete-item {
+        padding: 0.75rem 1rem;
+        cursor: pointer;
+        border-bottom: 1px solid #f3f4f6;
+        transition: all 0.2s ease;
+    }
+    
+    .autocomplete-item:hover,
+    .autocomplete-item.highlighted {
+        background: {{ form_template.color }}10;
+        color: {{ form_template.color }};
+    }
+    
+    .autocomplete-item:last-child {
+        border-bottom: none;
+    }
+    
+    /* Submit Section */
     .submit-wrapper {
-        margin-top: 40px;
+        margin-top: 3rem;
+        padding-top: 2rem;
+        border-top: 1px solid #e5e7eb;
         text-align: center;
     }
     
     .btn-submit {
-        background: {{ form_template.color }};
+        background: linear-gradient(135deg, {{ form_template.color }}, {{ form_template.color }}dd);
         color: white;
         border: none;
-        padding: 12px 40px;
-        font-size: 16px;
-        border-radius: 8px;
+        padding: 1rem 3rem;
+        font-size: 1.125rem;
+        font-weight: 600;
+        border-radius: 0.75rem;
         cursor: pointer;
         transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
     
     .btn-submit:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        box-shadow: 0 10px 25px {{ form_template.color }}40;
     }
     
-    .notification {
+    .btn-submit:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    /* Progress Bar */
+    .form-progress {
+        height: 4px;
+        background: #e5e7eb;
+        border-radius: 2px;
+        margin-bottom: 2rem;
+        overflow: hidden;
+    }
+    
+    .form-progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, {{ form_template.color }}, {{ form_template.color }}dd);
+        transition: width 0.3s ease;
+        border-radius: 2px;
+    }
+    
+    /* Rating Field */
+    .rating-field {
+        display: flex;
+        gap: 0.25rem;
+        margin: 0.5rem 0;
+    }
+    
+    .rating-star {
+        font-size: 1.5rem;
+        color: #d1d5db;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .rating-star:hover,
+    .rating-star.active {
+        color: #fbbf24;
+        transform: scale(1.1);
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .form-container {
+            margin: 1rem;
+            border-radius: 0.5rem;
+        }
+        
+        .form-header {
+            padding: 2rem 1rem;
+        }
+        
+        .form-header h1 {
+            font-size: 2rem;
+        }
+        
+        .form-body {
+            padding: 2rem 1rem;
+        }
+        
+        .btn-submit {
+            width: 100%;
+            padding: 1rem;
+        }
+    }
+    
+    /* Loading States */
+    .loading-overlay {
         position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 15px 25px;
-        border-radius: 8px;
-        color: white;
-        font-weight: 500;
-        transform: translateX(400px);
-        transition: transform 0.3s ease;
-        z-index: 1000;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
     }
     
-    .notification.show {
-        transform: translateX(0);
+    .loading-overlay.show {
+        opacity: 1;
+        visibility: visible;
     }
     
-    .notification-success {
-        background: #2ecc71;
+    .loading-spinner {
+        background: white;
+        padding: 2rem;
+        border-radius: 1rem;
+        text-align: center;
     }
     
-    .notification-error {
-        background: #e74c3c;
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f4f6;
+        border-top: 4px solid {{ form_template.color }};
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1rem;
     }
     
-    .notification-info {
-        background: #3498db;
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="form-container">
+<div class="form-container fade-in">
     <div class="form-header">
-        <h1><i class="fas fa-{{ form_template.icon }}"></i> {{ form_template.name }}</h1>
-        {% if form_template.description %}
-        <p>{{ form_template.description }}</p>
-        {% endif %}
+        <div class="form-header-content">
+            <h1>
+                <i class="fas fa-{{ form_template.icon }} me-3"></i>{{ form_template.name }}
+            </h1>
+            {% if form_template.description %}
+            <p>{{ form_template.description }}</p>
+            {% endif %}
+        </div>
     </div>
     
     <div class="form-body">
-        <form id="dynamic-form" method="post" enctype="multipart/form-data">
+        <!-- Progress Bar -->
+        <div class="form-progress">
+            <div class="form-progress-bar" style="width: 0%" id="progressBar"></div>
+        </div>
+        
+        <form id="dynamicForm" method="post" enctype="multipart/form-data" novalidate>
             {% csrf_token %}
             
             {% for field in fields %}
             <div class="field-wrapper" 
                  id="field-{{ field.name }}"
-                 {% if field.show_if %}data-show-if='{{ field.show_if|json }}'{% endif %}>
+                 data-field-name="{{ field.name }}"
+                 {% if field.show_if %}data-show-if='{{ field.show_if|safe }}'{% endif %}>
                 
                 <label class="field-label" for="id_{{ field.name }}">
                     {{ field.label }}
@@ -194,9 +435,10 @@
                            id="id_{{ field.name }}"
                            name="{{ field.name }}"
                            placeholder="{{ field.placeholder }}"
+                           value="{{ field.default_value }}"
                            {% if field.required %}required{% endif %}
                            {% if field.max_length %}maxlength="{{ field.max_length }}"{% endif %}
-                           {% if field.validation_rules %}data-validation='{{ field.validation_rules|json }}'{% endif %}>
+                           {% if field.validation_rules %}data-validation='{{ field.validation_rules|safe }}'{% endif %}>
                 
                 {% elif field.field_type == 'textarea' %}
                     <textarea class="form-control dynamic-field"
@@ -211,8 +453,19 @@
                            class="form-control dynamic-field"
                            id="id_{{ field.name }}"
                            name="{{ field.name }}"
+                           placeholder="{{ field.placeholder }}"
+                           value="{{ field.default_value }}"
                            {% if field.min_value %}min="{{ field.min_value }}"{% endif %}
                            {% if field.max_value %}max="{{ field.max_value }}"{% endif %}
+                           {% if field.required %}required{% endif %}>
+                
+                {% elif field.field_type == 'email' %}
+                    <input type="email"
+                           class="form-control dynamic-field"
+                           id="id_{{ field.name }}"
+                           name="{{ field.name }}"
+                           placeholder="{{ field.placeholder }}"
+                           value="{{ field.default_value }}"
                            {% if field.required %}required{% endif %}>
                 
                 {% elif field.field_type == 'date' %}
@@ -220,31 +473,96 @@
                            class="form-control dynamic-field"
                            id="id_{{ field.name }}"
                            name="{{ field.name }}"
+                           value="{{ field.default_value }}"
+                           {% if field.required %}required{% endif %}>
+                
+                {% elif field.field_type == 'datetime' %}
+                    <input type="datetime-local"
+                           class="form-control dynamic-field"
+                           id="id_{{ field.name }}"
+                           name="{{ field.name }}"
+                           value="{{ field.default_value }}"
                            {% if field.required %}required{% endif %}>
                 
                 {% elif field.field_type == 'select' %}
-                    <select class="form-control dynamic-field"
+                    <select class="form-select dynamic-field"
                             id="id_{{ field.name }}"
                             name="{{ field.name }}"
                             {% if field.required %}required{% endif %}>
-                        <option value="">-- Select --</option>
-                        {% for choice in field.get_choices %}
+                        <option value="">-- Select an option --</option>
+                        {% for choice in field.choices %}
+                        <option value="{{ choice.value }}" 
+                                {% if choice.value == field.default_value %}selected{% endif %}>
+                            {{ choice.label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                
+                {% elif field.field_type == 'multiselect' %}
+                    <select class="form-select dynamic-field"
+                            id="id_{{ field.name }}"
+                            name="{{ field.name }}"
+                            multiple
+                            {% if field.required %}required{% endif %}>
+                        {% for choice in field.choices %}
                         <option value="{{ choice.value }}">{{ choice.label }}</option>
                         {% endfor %}
                     </select>
                 
-                {% elif field.field_type == 'file' %}
-                    <div class="file-drop-zone">
-                        <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
-                        <p>Drag and drop file here or click to browse</p>
-                        <input type="file"
-                               class="form-control dynamic-field file-upload-field"
+                {% elif field.field_type == 'radio' %}
+                    <div class="radio-group">
+                        {% for choice in field.choices %}
+                        <div class="form-check">
+                            <input class="form-check-input dynamic-field" 
+                                   type="radio" 
+                                   name="{{ field.name }}" 
+                                   id="id_{{ field.name }}_{{ forloop.counter }}"
+                                   value="{{ choice.value }}"
+                                   {% if choice.value == field.default_value %}checked{% endif %}
+                                   {% if field.required %}required{% endif %}>
+                            <label class="form-check-label" for="id_{{ field.name }}_{{ forloop.counter }}">
+                                {{ choice.label }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                
+                {% elif field.field_type == 'checkbox' %}
+                    <div class="form-check">
+                        <input class="form-check-input dynamic-field" 
+                               type="checkbox" 
                                id="id_{{ field.name }}"
                                name="{{ field.name }}"
-                               {% if field.accept %}accept="{{ field.accept }}"{% endif %}
-                               {% if field.max_size %}data-max-size="{{ field.max_size }}"{% endif %}
+                               value="true"
+                               {% if field.default_value %}checked{% endif %}
                                {% if field.required %}required{% endif %}>
-                        <div class="file-preview"></div>
+                        <label class="form-check-label" for="id_{{ field.name }}">
+                            {{ field.placeholder|default:"Check this box" }}
+                        </label>
+                    </div>
+                
+                {% elif field.field_type == 'file' or field.field_type == 'image' %}
+                    <div class="file-drop-zone" onclick="document.getElementById('id_{{ field.name }}').click()">
+                        <div class="file-upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <p class="mb-2">
+                            <strong>Click to browse</strong> or drag and drop files here
+                        </p>
+                        <p class="text-muted small mb-0">
+                            {% if field.field_type == 'image' %}
+                                Images only (JPG, PNG, GIF)
+                            {% else %}
+                                {{ field.help_text|default:"All file types accepted" }}
+                            {% endif %}
+                        </p>
+                        <input type="file"
+                               class="d-none dynamic-field file-upload-field"
+                               id="id_{{ field.name }}"
+                               name="{{ field.name }}"
+                               {% if field.field_type == 'image' %}accept="image/*"{% endif %}
+                               {% if field.required %}required{% endif %}>
+                        <div class="file-preview" id="preview_{{ field.name }}"></div>
                     </div>
                 
                 {% elif field.field_type == 'lookup' %}
@@ -255,38 +573,158 @@
                            placeholder="{{ field.placeholder }}"
                            data-lookup-url="/api/lookup/{{ field.lookup_model }}/"
                            data-min-length="2"
+                           autocomplete="off"
                            {% if field.required %}required{% endif %}>
+                
+                {% elif field.field_type == 'rating' %}
+                    <div class="rating-field" data-field="{{ field.name }}">
+                        {% for i in "12345" %}
+                        <span class="rating-star" data-rating="{{ i }}">
+                            <i class="fas fa-star"></i>
+                        </span>
+                        {% endfor %}
+                        <input type="hidden" name="{{ field.name }}" id="id_{{ field.name }}">
+                    </div>
                 
                 {% elif field.field_type == 'nested' %}
                     <div class="nested-form" data-form-id="{{ field.nested_form.id }}">
-                        <h4>{{ field.nested_form.name }}</h4>
-                        <div class="nested-form-container">
+                        <div class="nested-form-header">
+                            <h5 class="mb-0">{{ field.nested_form.name }}</h5>
+                            {% if field.allow_multiple %}
+                            <button type="button" class="btn btn-sm btn-outline-primary add-nested-row">
+                                <i class="fas fa-plus me-1"></i>Add Row
+                            </button>
+                            {% endif %}
+                        </div>
+                        <div class="nested-form-container" id="nested_{{ field.name }}">
                             <!-- Nested form fields will be loaded here -->
                         </div>
-                        {% if field.allow_multiple %}
-                        <button type="button" class="btn btn-sm btn-secondary add-nested-row">
-                            <i class="fas fa-plus"></i> Add Row
-                        </button>
-                        {% endif %}
                     </div>
                 {% endif %}
                 
                 {% if field.help_text %}
                 <div class="field-help">{{ field.help_text }}</div>
                 {% endif %}
+                
+                <div class="field-error" id="error_{{ field.name }}"></div>
             </div>
             {% endfor %}
             
             <div class="submit-wrapper">
-                <button type="submit" class="btn-submit">
-                    <i class="fas fa-paper-plane"></i> Submit Form
+                <button type="submit" class="btn-submit" id="submitBtn">
+                    <i class="fas fa-paper-plane me-2"></i>Submit Form
                 </button>
+                <p class="text-muted mt-3 small">
+                    <i class="fas fa-lock me-1"></i>
+                    Your information is secure and will be processed according to our privacy policy.
+                </p>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner">
+        <div class="spinner"></div>
+        <p class="mb-0">Submitting your form...</p>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0">
+            <div class="modal-body text-center p-4">
+                <div class="mb-3">
+                    <i class="fas fa-check-circle fa-4x text-success"></i>
+                </div>
+                <h4 class="mb-3">Form Submitted Successfully!</h4>
+                <p class="text-muted mb-4">Thank you for your submission. You will receive a confirmation email shortly.</p>
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Close
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{% static 'js/dynamic_forms.js' %}"></script>
+<script>
+    // Initialize form after DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize the dynamic forms manager
+        if (typeof DynamicFormsManager !== 'undefined') {
+            new DynamicFormsManager();
+        }
+        
+        // Update progress bar based on filled fields
+        updateProgress();
+        
+        // Add change listeners to update progress
+        document.querySelectorAll('.dynamic-field').forEach(field => {
+            field.addEventListener('change', updateProgress);
+            field.addEventListener('input', updateProgress);
+        });
+    });
+    
+    function updateProgress() {
+        const fields = document.querySelectorAll('.dynamic-field:not([disabled])');
+        const filledFields = Array.from(fields).filter(field => {
+            if (field.type === 'checkbox' || field.type === 'radio') {
+                return field.checked;
+            }
+            return field.value.trim() !== '';
+        });
+        
+        const progress = fields.length > 0 ? (filledFields.length / fields.length) * 100 : 0;
+        document.getElementById('progressBar').style.width = progress + '%';
+    }
+    
+    // Rating field functionality
+    document.querySelectorAll('.rating-field').forEach(ratingField => {
+        const stars = ratingField.querySelectorAll('.rating-star');
+        const hiddenInput = ratingField.parentElement.querySelector('input[type="hidden"]');
+        
+        stars.forEach((star, index) => {
+            star.addEventListener('click', () => {
+                const rating = index + 1;
+                hiddenInput.value = rating;
+                
+                stars.forEach((s, i) => {
+                    if (i < rating) {
+                        s.classList.add('active');
+                    } else {
+                        s.classList.remove('active');
+                    }
+                });
+                
+                updateProgress();
+            });
+            
+            star.addEventListener('mouseenter', () => {
+                stars.forEach((s, i) => {
+                    if (i <= index) {
+                        s.style.color = '#fbbf24';
+                    } else {
+                        s.style.color = '#d1d5db';
+                    }
+                });
+            });
+        });
+        
+        ratingField.addEventListener('mouseleave', () => {
+            const currentRating = parseInt(hiddenInput.value) || 0;
+            stars.forEach((s, i) => {
+                if (i < currentRating) {
+                    s.style.color = '#fbbf24';
+                } else {
+                    s.style.color = '#d1d5db';
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}

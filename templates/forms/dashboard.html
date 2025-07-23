@@ -1,0 +1,295 @@
+<!-- 
+FILE: templates/forms/dashboard.html
+PURPOSE: Main dashboard with statistics and quick actions
+-->
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Dashboard - Dynamic Forms{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Welcome Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0" style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);">
+                <div class="card-body text-white">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h3 class="mb-2">Welcome back, {{ user.get_full_name }}! 👋</h3>
+                            <p class="mb-0 opacity-75">Here's what's happening with your forms today.</p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <i class="fas fa-chart-line fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="text-muted mb-1">Total Forms</h6>
+                            <h3 class="mb-0 text-primary">{{ total_forms }}</h3>
+                            <small class="text-success">
+                                <i class="fas fa-arrow-up me-1"></i>12% from last month
+                            </small>
+                        </div>
+                        <div class="bg-primary bg-opacity-10 p-3 rounded">
+                            <i class="fas fa-file-alt text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="text-muted mb-1">My Submissions</h6>
+                            <h3 class="mb-0 text-success">{{ my_submissions }}</h3>
+                            <small class="text-success">
+                                <i class="fas fa-arrow-up me-1"></i>8% from last week
+                            </small>
+                        </div>
+                        <div class="bg-success bg-opacity-10 p-3 rounded">
+                            <i class="fas fa-paper-plane text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="text-muted mb-1">Pending Approvals</h6>
+                            <h3 class="mb-0 text-warning">{{ pending_approvals }}</h3>
+                            <small class="text-danger">
+                                <i class="fas fa-arrow-down me-1"></i>3% from yesterday
+                            </small>
+                        </div>
+                        <div class="bg-warning bg-opacity-10 p-3 rounded">
+                            <i class="fas fa-clock text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="text-muted mb-1">Completion Rate</h6>
+                            <h3 class="mb-0 text-info">94%</h3>
+                            <small class="text-success">
+                                <i class="fas fa-arrow-up me-1"></i>2% from last month
+                            </small>
+                        </div>
+                        <div class="bg-info bg-opacity-10 p-3 rounded">
+                            <i class="fas fa-chart-pie text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Recent Activity -->
+        <div class="col-md-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>Recent Activity
+                    </h5>
+                    <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if recent_submissions %}
+                        <div class="activity-list">
+                            {% for submission in recent_submissions %}
+                            <div class="activity-item d-flex align-items-center mb-3 pb-3 border-bottom">
+                                <div class="activity-icon me-3">
+                                    <div class="bg-primary bg-opacity-10 p-2 rounded-circle">
+                                        <i class="fas fa-file-alt text-primary"></i>
+                                    </div>
+                                </div>
+                                <div class="activity-content flex-grow-1">
+                                    <h6 class="mb-1">{{ submission.form.name }}</h6>
+                                    <p class="text-muted mb-1">
+                                        Submitted by {{ submission.submitted_by.get_full_name }}
+                                    </p>
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock me-1"></i>
+                                        {{ submission.submitted_at|naturaltime }}
+                                    </small>
+                                </div>
+                                <div class="activity-status">
+                                    {% if submission.status == 'pending' %}
+                                        <span class="badge bg-warning">Pending</span>
+                                    {% elif submission.status == 'approved' %}
+                                        <span class="badge bg-success">Approved</span>
+                                    {% elif submission.status == 'rejected' %}
+                                        <span class="badge bg-danger">Rejected</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ submission.status|title }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <h6 class="text-muted">No recent activity</h6>
+                            <p class="text-muted">Your recent submissions will appear here.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Popular Forms -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-fire me-2"></i>Popular Forms
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if popular_forms %}
+                        {% for form in popular_forms %}
+                        <div class="popular-form-item d-flex align-items-center mb-3">
+                            <div class="form-icon me-3">
+                                <div class="p-2 rounded" style="background-color: {{ form.color }}20; color: {{ form.color }};">
+                                    <i class="fas fa-{{ form.icon }}"></i>
+                                </div>
+                            </div>
+                            <div class="form-info flex-grow-1">
+                                <h6 class="mb-1">{{ form.name }}</h6>
+                                <small class="text-muted">{{ form.submissions_count }} submissions</small>
+                            </div>
+                            <div class="form-action">
+                                <a href="{% url 'form_render' form.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+                            <h6 class="text-muted">No forms yet</h6>
+                            <p class="text-muted">Popular forms will appear here.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'form_list' %}" class="text-decoration-none">
+                                <div class="quick-action-card text-center p-4 border rounded h-100">
+                                    <div class="mb-3">
+                                        <i class="fas fa-plus-circle fa-2x text-primary"></i>
+                                    </div>
+                                    <h6 class="mb-2">Browse Forms</h6>
+                                    <p class="text-muted small mb-0">View available forms</p>
+                                </div>
+                            </a>
+                        </div>
+                        
+                        {% if user.is_staff %}
+                        <div class="col-md-3 mb-3">
+                            <a href="/admin/" class="text-decoration-none">
+                                <div class="quick-action-card text-center p-4 border rounded h-100">
+                                    <div class="mb-3">
+                                        <i class="fas fa-cog fa-2x text-success"></i>
+                                    </div>
+                                    <h6 class="mb-2">Admin Panel</h6>
+                                    <p class="text-muted small mb-0">Manage forms and users</p>
+                                </div>
+                            </a>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="col-md-3 mb-3">
+                            <a href="#" class="text-decoration-none">
+                                <div class="quick-action-card text-center p-4 border rounded h-100">
+                                    <div class="mb-3">
+                                        <i class="fas fa-download fa-2x text-info"></i>
+                                    </div>
+                                    <h6 class="mb-2">Export Data</h6>
+                                    <p class="text-muted small mb-0">Download form submissions</p>
+                                </div>
+                            </a>
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <a href="#" class="text-decoration-none">
+                                <div class="quick-action-card text-center p-4 border rounded h-100">
+                                    <div class="mb-3">
+                                        <i class="fas fa-chart-line fa-2x text-warning"></i>
+                                    </div>
+                                    <h6 class="mb-2">View Analytics</h6>
+                                    <p class="text-muted small mb-0">Analyze form performance</p>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.quick-action-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.quick-action-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    border-color: var(--primary-color) !important;
+}
+
+.activity-item:last-child {
+    border-bottom: none !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+.popular-form-item:last-child {
+    margin-bottom: 0 !important;
+}
+</style>
+{% endblock %}
